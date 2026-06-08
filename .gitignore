@@ -18,3 +18,6 @@ data/watchdog.log
 .vscode/
 .idea/
 .env
+
+# 历史数据（体积大，本地保留）
+data/
