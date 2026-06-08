@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 运行时文件（不提交 PID/日志）
+data/live_stats.pid
+data/live_stats.log
+data/watchdog.pid
+data/watchdog.log
+
+# macOS
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+.env
