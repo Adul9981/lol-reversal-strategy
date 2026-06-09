@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoL Trader — UI Mockup + 修改批注</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; font-size: 14px; }
+
+  /* ── 页面切换 Tab ── */
+  .page-tabs { display: flex; gap: 2px; padding: 12px 16px 0; background: #0f1117; border-bottom: 1px solid #1e2535; position: sticky; top: 0; z-index: 100; }
+  .page-tab { padding: 8px 20px; border-radius: 6px 6px 0 0; cursor: pointer; background: #1a2030; color: #94a3b8; border: 1px solid #1e2535; border-bottom: none; font-size: 13px; }
+  .page-tab.active { background: #1e2840; color: #e2e8f0; border-color: #2d3f5c; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── 全局顶栏 ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: #131929; border-bottom: 1px solid #1e2535; position: sticky; top: 41px; z-index: 99; }
+  .topbar-left { display: flex; align-items: center; gap: 20px; }
+  .logo { font-weight: 700; font-size: 15px; color: #60a5fa; }
+  .mode-toggle { display: flex; background: #0f1117; border-radius: 20px; padding: 2px; border: 1px solid #2d3f5c; }
+  .mode-btn { padding: 4px 14px; border-radius: 18px; font-size: 12px; cursor: pointer; color: #64748b; }
+  .mode-btn.active { background: #2563eb; color: white; }
+  .topbar-right { display: flex; align-items: center; gap: 20px; }
+  .stat-label { font-size: 11px; color: #64748b; }
+  .stat-value { font-weight: 600; font-size: 14px; }
+  .green { color: #34d399; }
+  .red { color: #f87171; }
+  .pause-btn { padding: 5px 14px; background: #1e2535; border: 1px solid #374151; border-radius: 6px; cursor: pointer; font-size: 12px; color: #94a3b8; }
+
+  /* ── 通用容器 ── */
+  .page-content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .page-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #f1f5f9; }
+  .card { background: #131929; border: 1px solid #1e2535; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 12px; font-weight: 600; }
+
+  /* ── 赛程表格 ── */
+  .match-table { width: 100%; border-collapse: collapse; }
+  .match-table th { text-align: left; padding: 8px 12px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #1e2535; }
+  .match-row { cursor: pointer; transition: background .15s; }
+  .match-row:hover { background: #1a2030; }
+  .match-row td { padding: 12px; border-bottom: 1px solid #0f1117; vertical-align: middle; }
+  .match-row.highlight { background: #1e1a0a; }
+  .match-row.highlight:hover { background: #252010; }
+  .status-live { display: flex; align-items: center; gap: 6px; color: #f87171; font-size: 12px; font-weight: 600; }
+  .live-dot { width: 7px; height: 7px; background: #f87171; border-radius: 50%; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  .status-upcoming { color: #fbbf24; font-size: 12px; }
+  .status-ended { color: #64748b; font-size: 12px; }
+  .team-names { font-weight: 600; font-size: 14px; }
+  .league-badge { display: inline-block; padding: 2px 7px; background: #1e2535; border-radius: 4px; font-size: 11px; color: #94a3b8; margin-right: 6px; }
+  .signal-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .signal-s3 { background: #422006; color: #fb923c; border: 1px solid #7c2d12; }
+  .signal-s2 { background: #1e3a1e; color: #4ade80; border: 1px solid #166534; }
+  .signal-none { color: #374151; }
+  .pnl-pos { color: #34d399; font-weight: 600; }
+  .pnl-neg { color: #f87171; font-weight: 600; }
+  .view-btn { padding: 4px 12px; background: #2563eb; border-radius: 5px; font-size: 12px; color: white; cursor: pointer; border: none; }
+
+  /* ── 比赛详情 ── */
+  .match-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .back-btn { color: #60a5fa; font-size: 13px; cursor: pointer; margin-right: 12px; }
+  .team-odds { display: flex; gap: 40px; align-items: center; }
+  .team-block { text-align: center; }
+  .team-name-big { font-size: 16px; font-weight: 700; }
+  .team-price-big { font-size: 28px; font-weight: 800; margin-top: 2px; }
+  .price-low { color: #f87171; }
+  .price-high { color: #34d399; }
+  .vs-text { color: #374151; font-size: 18px; font-weight: 300; }
+  .match-meta { color: #64748b; font-size: 12px; text-align: center; margin-top: 4px; }
+
+  /* ── 赔率图 ── */
+  .chart-area { height: 180px; background: #0f1117; border-radius: 8px; position: relative; overflow: hidden; }
+  .chart-svg { width: 100%; height: 100%; }
+
+  /* ── 战局数据 ── */
+  .battle-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+  .battle-row { display: contents; }
+  .battle-val { text-align: center; font-weight: 600; font-size: 15px; }
+  .battle-val.red-team { color: #f87171; }
+  .battle-label { text-align: center; font-size: 11px; color: #64748b; padding: 6px 8px; }
+  .battle-check { text-align: center; }
+  .check-ok { color: #34d399; font-size: 14px; }
+  .check-fail { color: #f87171; font-size: 14px; }
+  .gold-diff-bar { display: flex; align-items: center; gap: 8px; grid-column: 1/-1; background: #0f1117; border-radius: 6px; padding: 8px 12px; margin: 4px 0; }
+  .gold-bar-track { flex: 1; height: 6px; background: #1e2535; border-radius: 3px; position: relative; }
+  .gold-bar-fill { position: absolute; right: 50%; height: 100%; background: #f87171; border-radius: 3px; width: 18%; }
+  .gold-diff-text { font-size: 13px; color: #fbbf24; font-weight: 600; }
+
+  /* ── 信号面板 ── */
+  .signal-panel { border: 1px solid #166534; background: #0d1f12; border-radius: 8px; padding: 14px; }
+  .signal-panel.no-signal { border-color: #1e2535; background: #131929; }
+  .signal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .signal-title { font-weight: 700; font-size: 14px; color: #4ade80; }
+  .signal-title.dim { color: #64748b; }
+  .auto-trade-info { background: #0a1a0a; border-radius: 6px; padding: 10px 12px; font-size: 13px; color: #86efac; margin-bottom: 10px; }
+  .trade-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .trade-label { font-size: 12px; color: #94a3b8; }
+  .trade-input { background: #0f1117; border: 1px solid #2d3f5c; border-radius: 5px; padding: 5px 10px; color: #e2e8f0; font-size: 13px; width: 80px; }
+  .buy-btn { padding: 6px 14px; background: #2563eb; border-radius: 5px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .close-btn { padding: 6px 14px; background: #7f1d1d; border: 1px solid #991b1b; border-radius: 5px; color: #fca5a5; font-size: 13px; cursor: pointer; }
+  .risk-warn { font-size: 12px; color: #fbbf24; background: #1c1400; border: 1px solid #854d0e; border-radius: 5px; padding: 5px 10px; }
+
+  /* ── 时间线 ── */
+  .timeline { list-style: none; }
+  .timeline-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #0f1117; font-size: 13px; }
+  .tl-time { color: #64748b; min-width: 55px; }
+  .tl-icon { min-width: 20px; text-align: center; }
+  .tl-text { color: #cbd5e1; }
+  .tl-rejected { color: #fbbf24; }
+
+  /* ── 账户页 ── */
+  .trade-table { width: 100%; border-collapse: collapse; }
+  .trade-table th { text-align: left; padding: 8px 10px; color: #64748b; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #1e2535; }
+  .trade-table td { padding: 10px; border-bottom: 1px solid #0f1117; font-size: 13px; }
+  .badge-a { background: #1e1a40; color: #a78bfa; border: 1px solid #3730a3; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  .badge-b { background: #1a2e1a; color: #4ade80; border: 1px solid #166534; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  .progress-row { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
+  .progress-label span:first-child { color: #94a3b8; }
+  .progress-bar { height: 6px; background: #1e2535; border-radius: 3px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #2563eb; }
+  .progress-fill.full { background: #dc2626; }
+  .progress-fill.series { background: #7c3aed; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-box { background: #0f1117; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-box-val { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+  .stat-box-label { font-size: 11px; color: #64748b; }
+
+  /* ── 批注气泡 ── */
+  .annotation { position: absolute; z-index: 50; }
+  .ann-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #dc2626; color: white; font-size: 11px; font-weight: 800; border-radius: 50%; border: 2px solid #fee2e2; box-shadow: 0 0 0 3px rgba(220,38,38,.25); cursor: pointer; }
+  .ann-box { position: absolute; left: 28px; top: -6px; background: #1e1010; border: 1px solid #dc2626; border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #fca5a5; white-space: nowrap; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,.5); z-index: 60; pointer-events: none; }
+  .ann-box.left { left: auto; right: 28px; }
+  .ann-highlight { outline: 2px dashed #dc2626; outline-offset: 3px; border-radius: 4px; position: relative; }
+
+  /* ── 数据健康指示 ── */
+  .health-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 10px; border-radius: 12px; }
+  .health-ok { background: #0d1f12; color: #4ade80; border: 1px solid #166534; }
+  .health-warn { background: #1c1400; color: #fbbf24; border: 1px solid #854d0e; }
+
+  /* ── Poly 滞后标签 ── */
+  .poly-lag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 7px; border-radius: 10px; }
+  .poly-lag-fresh { background: #1c1400; color: #fbbf24; border: 1px solid #854d0e; }
+  .poly-lag-partial { background: #1a1a2e; color: #818cf8; border: 1px solid #3730a3; }
+  .poly-lag-updated { background: #1e0d0d; color: #f87171; border: 1px solid #7f1d1d; }
+
+  /* ── 图例 ── */
+  .legend { margin-top: 16px; padding: 14px 16px; background: #0f1117; border-radius: 8px; border: 1px solid #1e2535; }
+  .legend-title { font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; }
+  .legend-items { display: flex; flex-direction: column; gap: 7px; }
+  .legend-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+  .legend-item .ann-num { flex-shrink: 0; }
+  .legend-text { color: #cbd5e1; }
+  .legend-text strong { color: #f87171; }
+
+  /* divider */
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+</style>
+</head>
+<body>
+
+<!-- 页面 Tab -->
+<div class="page-tabs">
+  <div class="page-tab active" onclick="showPage('p1')">页面一：今日赛程</div>
+  <div class="page-tab" onclick="showPage('p2')">页面二：比赛详情</div>
+  <div class="page-tab" onclick="showPage('p3')">页面三：账户总览</div>
+</div>
+
+<!-- ═══════════════════ 页面一 ═══════════════════ -->
+<div id="p1" class="page active">
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">⚡ LoL Trader</span>
+      <div class="mode-toggle">
+        <div class="mode-btn active">自动</div>
+        <div class="mode-btn">手动</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <!-- 批注①：数据健康指示灯 -->
+      <div style="position:relative; display:inline-block;">
+        <div class="ann-highlight health-dot health-ok">● 数据正常</div>
+        <div class="annotation" style="top:-8px;right:-10px;">
+          <span class="ann-num">①</span>
+          <div class="ann-box left" style="right:30px;left:auto;">新增：数据健康指示灯<br>LiveStats 延迟时变黄/红</div>
+        </div>
+      </div>
+      <div>
+        <div class="stat-label">账户余额</div>
+        <div class="stat-value">$847 USDC</div>
+      </div>
+      <div>
+        <div class="stat-label">今日盈亏</div>
+        <div class="stat-value green">+$43</div>
+      </div>
+      <div class="pause-btn">⏸ 一键暂停</div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="page-title">今日赛程 · 2026-06-09</div>
+    <div class="card">
+      <table class="match-table">
+        <thead>
+          <tr>
+            <th>状态</th><th>比赛</th><th>联赛 / 赛制</th><th>信号</th><th>本场盈亏</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 直播 + 信号 → 高亮行 -->
+          <tr class="match-row highlight" onclick="showPage('p2')">
+            <td><div class="status-live"><span class="live-dot"></span>直播中</div></td>
+            <td class="team-names">KT Rolster vs Dplus KIA</td>
+            <td><span class="league-badge">LCK</span>BO5 · G3</td>
+            <td>
+              <!-- 批注②：显示信号类型 A/B -->
+              <div style="position:relative;display:inline-block;">
+                <span class="ann-highlight signal-badge signal-s3">⭐⭐⭐ A型</span>
+                <div class="annotation" style="top:-8px;right:-10px;">
+                  <span class="ann-num">②</span>
+                  <div class="ann-box left" style="right:30px;left:auto;">新增 A型/B型 标注<br>对应不同M1额度上限</div>
+                </div>
+              </div>
+            </td>
+            <td>—</td>
+            <td><button class="view-btn">查看</button></td>
+          </tr>
+          <tr class="match-row">
+            <td><div class="status-live"><span class="live-dot"></span>直播中</div></td>
+            <td class="team-names">T1 vs BFX</td>
+            <td><span class="league-badge">LCK</span>BO3 · G1</td>
+            <td><span class="signal-none">—</span></td>
+            <td>—</td>
+            <td><button class="view-btn">查看</button></td>
+          </tr>
+          <tr class="match-row">
+            <td><div class="status-upcoming">⏰ 45分后</div></td>
+            <td class="team-names">Gen.G vs HLE</td>
+            <td><span class="league-badge">LCK</span>BO3</td>
+            <td><span class="signal-none">—</span></td>
+            <td>—</td>
+            <td></td>
+          </tr>
+          <tr class="match-row">
+            <td><div class="status-ended">✅ 已结束</div></td>
+            <td class="team-names">DK vs NS</td>
+            <td><span class="league-badge">LCK</span>BO3 · G2</td>
+            <td><span class="signal-badge signal-s2" style="font-size:11px;">触发过</span></td>
+            <td class="pnl-pos">+$28</td>
+            <td><button class="view-btn" style="background:#1e2535;color:#94a3b8;">复盘</button></td>
+          </tr>
+          <tr class="match-row">
+            <td><div class="status-ended">✅ 已结束</div></td>
+            <td class="team-names">JDG vs BLG</td>
+            <td><span class="league-badge">LPL</span>BO3</td>
+            <td><span class="signal-none">—</span></td>
+            <td>—</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <div class="legend-title">📌 本页批注说明</div>
+      <div class="legend-items">
+        <div class="legend-item"><span class="ann-num">①</span><div class="legend-text"><strong>新增</strong>：顶栏加数据健康指示灯。LiveStats 数据 &gt;30s 未更新变黄，断开变红。</div></div>
+        <div class="legend-item"><span class="ann-num">②</span><div class="legend-text"><strong>新增</strong>：信号强度后面补充 A型 / B型标注。A型上限 $30，B型上限 $150，用户必须知道是哪种。</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ 页面二 ═══════════════════ -->
+<div id="p2" class="page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">⚡ LoL Trader</span>
+      <div class="mode-toggle">
+        <div class="mode-btn active">自动</div>
+        <div class="mode-btn">手动</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="health-dot health-warn">⚠️ LiveStats 延迟 28s</div>
+      <div><div class="stat-label">账户余额</div><div class="stat-value">$847 USDC</div></div>
+      <div><div class="stat-label">今日盈亏</div><div class="stat-value green">+$43</div></div>
+      <div class="pause-btn">⏸ 一键暂停</div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <!-- 比赛头部 -->
+    <div class="match-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="back-btn">← 返回</span>
+        <div>
+          <div style="font-size:12px;color:#64748b;">LCK · BO5 · Game 3 · 第 23 分钟</div>
+          <div class="team-odds" style="margin-top:6px;">
+            <div class="team-block">
+              <div class="team-name-big">KT Rolster</div>
+              <!-- 批注③：Poly 滞后标签 -->
+              <div style="position:relative;display:inline-block;">
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                  <span class="team-price-big price-low">35¢</span>
+                  <span class="ann-highlight poly-lag poly-lag-fresh">⚡ Poly未更新</span>
+                </div>
+                <div class="annotation" style="top:-6px;right:-10px;">
+                  <span class="ann-num">③</span>
+                  <div class="ann-box left" style="right:30px;left:auto;">新增：Poly滞后状态标签<br>⚡未更新 / 🔶部分更新 / 🔴已更新</div>
+                </div>
+              </div>
+            </div>
+            <span class="vs-text">vs</span>
+            <div class="team-block">
+              <div class="team-name-big">Dplus KIA</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <span class="team-price-big price-high">65¢</span>
+                <span class="poly-lag poly-lag-fresh" style="font-size:11px;">⚡ 未更新</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 赔率走势图 -->
+    <div class="card">
+      <div class="section-title">赔率走势 · 最近 25 分钟</div>
+      <div class="chart-area">
+        <svg class="chart-svg" viewBox="0 0 800 180" preserveAspectRatio="none">
+          <!-- 网格 -->
+          <line x1="0" y1="45" x2="800" y2="45" stroke="#1e2535" stroke-width="1"/>
+          <line x1="0" y1="90" x2="800" y2="90" stroke="#1e2535" stroke-width="1" stroke-dasharray="4,4"/>
+          <line x1="0" y1="135" x2="800" y2="135" stroke="#1e2535" stroke-width="1"/>
+          <!-- DK 线（绿 - 领先方） -->
+          <polyline points="0,54 100,58 200,62 300,65 400,68 500,72 600,76 700,65 800,58" fill="none" stroke="#34d399" stroke-width="2"/>
+          <!-- KT 线（红 - 落后方） -->
+          <polyline points="0,126 100,122 200,118 300,115 400,112 500,108 600,104 700,115 800,122" fill="none" stroke="#f87171" stroke-width="2"/>
+          <!-- 信号触发标记 -->
+          <polygon points="510,88 518,104 502,104" fill="#fb923c" opacity="0.9"/>
+          <text x="506" y="84" fill="#fb923c" font-size="10">⭐⭐</text>
+          <!-- 买入标记 -->
+          <circle cx="512" cy="108" r="5" fill="#2563eb" stroke="#93c5fd" stroke-width="1.5"/>
+          <text x="516" y="122" fill="#93c5fd" font-size="10">买入$30</text>
+          <!-- 轴标 -->
+          <text x="8" y="175" fill="#4b5563" font-size="10">0</text>
+          <text x="192" y="175" fill="#4b5563" font-size="10">5分</text>
+          <text x="392" y="175" fill="#4b5563" font-size="10">10分</text>
+          <text x="592" y="175" fill="#4b5563" font-size="10">19分</text>
+          <text x="772" y="175" fill="#4b5563" font-size="10">23分</text>
+          <text x="4" y="48" fill="#4b5563" font-size="10">75%</text>
+          <text x="4" y="93" fill="#4b5563" font-size="10">50%</text>
+          <text x="4" y="138" fill="#4b5563" font-size="10">25%</text>
+          <!-- 图例 -->
+          <rect x="640" y="8" width="12" height="3" fill="#34d399"/>
+          <text x="656" y="14" fill="#94a3b8" font-size="10">Dplus KIA</text>
+          <rect x="640" y="20" width="12" height="3" fill="#f87171"/>
+          <text x="656" y="27" fill="#94a3b8" font-size="10">KT Rolster</text>
+          <polygon points="644,32 648,40 640,40" fill="#fb923c" opacity="0.9"/>
+          <text x="653" y="38" fill="#94a3b8" font-size="10">信号触发</text>
+          <circle cx="643" cy="46" r="4" fill="#2563eb" stroke="#93c5fd" stroke-width="1.5"/>
+          <text x="651" y="49" fill="#94a3b8" font-size="10">买入点</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="col2">
+      <!-- 战局数据 -->
+      <div class="card">
+        <div class="section-title">当前战局</div>
+        <div class="battle-grid">
+          <div class="battle-val">42,300</div>
+          <div class="battle-label">金币</div>
+          <div class="battle-val red-team">44,800</div>
+
+          <div class="battle-val">8</div>
+          <div class="battle-label">击杀</div>
+          <div class="battle-val red-team">11</div>
+
+          <div class="battle-val">4</div>
+          <div class="battle-label">防御塔</div>
+          <div class="battle-val red-team">5</div>
+
+          <div class="battle-val">1</div>
+          <div class="battle-label">小龙</div>
+          <div class="battle-val red-team">2</div>
+
+          <div class="battle-val">完好</div>
+          <div class="battle-label">高地</div>
+          <div class="battle-val red-team">完好</div>
+        </div>
+        <div style="margin-top:10px;padding:8px;background:#0f1117;border-radius:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:4px;">
+            <span>KT</span><span class="gold-diff-text">金差 -2,500 ✅</span><span>DK</span>
+          </div>
+          <div class="gold-bar-track"><div class="gold-bar-fill"></div></div>
+        </div>
+        <!-- 条件检查 -->
+        <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="display:flex;justify-content:space-between;background:#0f1117;padding:5px 8px;border-radius:5px;font-size:12px;"><span>游戏时间</span><span class="check-ok">23分 ✅</span></div>
+          <div style="display:flex;justify-content:space-between;background:#0f1117;padding:5px 8px;border-radius:5px;font-size:12px;"><span>金币差</span><span class="check-ok">-2500 ✅</span></div>
+          <div style="display:flex;justify-content:space-between;background:#0f1117;padding:5px 8px;border-radius:5px;font-size:12px;"><span>对方龙数</span><span class="check-ok">≤2 ✅</span></div>
+          <div style="display:flex;justify-content:space-between;background:#0f1117;padding:5px 8px;border-radius:5px;font-size:12px;"><span>抑制器</span><span class="check-ok">0 ✅</span></div>
+        </div>
+      </div>
+
+      <!-- 信号操作面板 -->
+      <div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="section-title">信号与操作</div>
+          <div class="signal-panel">
+            <div class="signal-header">
+              <!-- 批注②信号类型 -->
+              <span class="signal-title">⭐⭐ A型信号触发 · 第19分钟</span>
+            </div>
+            <div class="auto-trade-info">
+              ✅ 已自动买入：KT Rolster $30 @ 21¢<br>
+              <span style="color:#94a3b8;">当前估值 $30 → $41（+$11，+37%）</span>
+            </div>
+            <!-- 批注④：Auto模式必须有平仓按钮 -->
+            <div style="position:relative;display:inline-block;width:100%;">
+              <button class="ann-highlight close-btn" style="width:100%;text-align:center;">⚠️ 一键平仓（当前 +$11）</button>
+              <div class="annotation" style="top:-8px;right:-10px;">
+                <span class="ann-num">④</span>
+                <div class="ann-box left" style="right:30px;left:auto;">MVP必须有平仓按钮<br>原设计自动模式无操作按钮</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 本场时间线 -->
+        <div class="card">
+          <div class="section-title">本场事件记录</div>
+          <ul class="timeline">
+            <li class="timeline-item">
+              <span class="tl-time">第19分</span>
+              <span class="tl-icon">🔔</span>
+              <span class="tl-text">A型信号触发（⭐⭐，金差-1,800，KT 21¢）</span>
+            </li>
+            <li class="timeline-item">
+              <span class="tl-time">第19分</span>
+              <span class="tl-icon">💰</span>
+              <span class="tl-text">自动买入 KT $30 @ 21¢</span>
+            </li>
+            <!-- 批注⑤：风控拒绝也要显示 -->
+            <li class="timeline-item" style="position:relative;">
+              <span class="tl-time">第21分</span>
+              <span class="tl-icon">⚠️</span>
+              <div style="position:relative;flex:1;">
+                <span class="ann-highlight tl-rejected">风控拒绝：LCK A型额度已用满（$30/$30），跳过信号</span>
+                <div class="annotation" style="top:-8px;right:-10px;">
+                  <span class="ann-num">⑤</span>
+                  <div class="ann-box left" style="right:30px;left:auto;">新增：风控拒绝也要记录在时间线<br>否则自动模式下用户不知道发生了什么</div>
+                </div>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <span class="tl-time">第23分</span>
+              <span class="tl-icon">📊</span>
+              <span class="tl-text">赔率更新：KT 35¢（+14¢，浮盈 +$20）</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <div class="legend-title">📌 本页批注说明</div>
+      <div class="legend-items">
+        <div class="legend-item"><span class="ann-num">③</span><div class="legend-text"><strong>新增</strong>：赔率旁边显示 Poly 滞后状态（⚡未更新 / 🔶部分更新 / 🔴已更新），这是我们系统最核心的优势，UI 上必须体现。</div></div>
+        <div class="legend-item"><span class="ann-num">④</span><div class="legend-text"><strong>修复</strong>：原设计 MVP 自动模式「不含操作按钮」，但必须有平仓按钮——局势突变时要能立刻手动退出。</div></div>
+        <div class="legend-item"><span class="ann-num">⑤</span><div class="legend-text"><strong>新增</strong>：时间线要记录「信号触发但被风控拒绝」的事件，不然自动模式下用户完全不知道系统跳过了什么机会。</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ 页面三 ═══════════════════ -->
+<div id="p3" class="page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">⚡ LoL Trader</span>
+      <div class="mode-toggle"><div class="mode-btn active">自动</div><div class="mode-btn">手动</div></div>
+    </div>
+    <div class="topbar-right">
+      <div class="health-dot health-ok">● 数据正常</div>
+      <div><div class="stat-label">账户余额</div><div class="stat-value">$847 USDC</div></div>
+      <div><div class="stat-label">今日盈亏</div><div class="stat-value green">+$43</div></div>
+      <div class="pause-btn">⏸ 一键暂停</div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="page-title">账户总览</div>
+    <div class="col2">
+      <!-- 今日交易 -->
+      <div class="card">
+        <div class="section-title">今日交易记录</div>
+        <table class="trade-table">
+          <thead><tr><th>时间</th><th>比赛</th><th>信号类型</th><th>入场</th><th>出场</th><th>金额</th><th>盈亏</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:#64748b;">19:03</td>
+              <td>KT vs DK G3</td>
+              <!-- 批注⑥：信号类型列 -->
+              <td>
+                <div style="position:relative;display:inline-block;">
+                  <span class="ann-highlight badge-a">A型</span>
+                  <div class="annotation" style="top:-8px;right:-10px;">
+                    <span class="ann-num">⑥</span>
+                    <div class="ann-box" style="min-width:220px;">新增：交易记录显示A型/B型<br>方便事后分析哪类信号更赚钱</div>
+                  </div>
+                </div>
+              </td>
+              <td>21¢</td><td style="color:#fbbf24;">持仓中</td><td>$30</td><td class="pnl-pos">+$11 🟡</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;">17:42</td><td>T1 vs BFX G1</td><td><span class="badge-b">B型</span></td>
+              <td>68¢</td><td>82¢</td><td>$21</td><td class="pnl-pos">+$5 ✅</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;">16:10</td><td>DK vs NS G1</td><td><span class="badge-a">A型</span></td>
+              <td>11¢</td><td>归零</td><td>$7</td><td class="pnl-neg">-$7 ❌</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 额度 + 统计 -->
+      <div>
+        <div class="card">
+          <div class="section-title">今日额度使用</div>
+          <div class="progress-row">
+            <div class="progress-label"><span>LCK A型</span><span style="color:#dc2626;font-weight:600;">$30 / $30（用满）</span></div>
+            <div class="progress-bar"><div class="progress-fill full" style="width:100%"></div></div>
+          </div>
+          <div class="progress-row">
+            <div class="progress-label"><span>LCK B型</span><span>$21 / $150</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:14%"></div></div>
+          </div>
+          <div class="progress-row">
+            <div class="progress-label"><span>LPL 全部</span><span>$0 / $30</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          </div>
+          <!-- 批注⑦：系列赛独立额度 -->
+          <div class="progress-row" style="position:relative;">
+            <div class="progress-label">
+              <span class="ann-highlight" style="padding:2px 4px;">系列赛专项（M2）</span>
+              <span>$35 / $100</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill series" style="width:35%"></div></div>
+            <div class="annotation" style="top:0;right:-10px;">
+              <span class="ann-num">⑦</span>
+              <div class="ann-box left" style="right:30px;left:auto;">新增：系列赛市场独立额度（M2）<br>不能和单局共用，否则系列赛<br>机会来了发现没钱买</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">累计统计（本月）</div>
+          <div class="stats-grid">
+            <div class="stat-box"><div class="stat-box-val green">+$243</div><div class="stat-box-label">本月盈亏</div></div>
+            <div class="stat-box"><div class="stat-box-val">22</div><div class="stat-box-label">总交易次数</div></div>
+            <div class="stat-box"><div class="stat-box-val" style="color:#60a5fa;">63.6%</div><div class="stat-box-label">胜率 14/22</div></div>
+            <div class="stat-box"><div class="stat-box-val" style="color:#a78bfa;">18分</div><div class="stat-box-label">平均持仓时长</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <div class="legend-title">📌 本页批注说明</div>
+      <div class="legend-items">
+        <div class="legend-item"><span class="ann-num">⑥</span><div class="legend-text"><strong>新增</strong>：交易记录增加「信号类型」列（A型/B型），方便事后统计各类信号的真实盈亏，持续优化策略。</div></div>
+        <div class="legend-item"><span class="ann-num">⑦</span><div class="legend-text"><strong>新增</strong>：额度使用区域增加「系列赛专项（M2）」独立进度条。系列赛市场不能和单局共用额度，否则前几局超额后系列赛机会来了没钱买（KT #024 教训）。</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx = {p1:0,p2:1,p3:2}[id];
+  document.querySelectorAll('.page-tab')[idx].classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
